@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Auto-Reply Bot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            background: linear-gradient(90deg, #00d2ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        header p {
+            color: #888;
+            font-size: 0.95rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .badge.ai { background: rgba(123, 47, 247, 0.25); color: #b07aff; border: 1px solid rgba(123, 47, 247, 0.4); }
+        .badge.fallback { background: rgba(255, 165, 0, 0.2); color: #ffa500; border: 1px solid rgba(255, 165, 0, 0.3); }
+
+        .card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            color: #ccc;
+        }
+
+        .business-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .biz-btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 14px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            color: #ccc;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .biz-btn:hover { background: rgba(255, 255, 255, 0.08); }
+
+        .biz-btn.active {
+            border-color: #7b2ff7;
+            background: rgba(123, 47, 247, 0.15);
+            color: #fff;
+        }
+
+        .biz-btn .icon { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+        .biz-btn .label { font-size: 0.85rem; font-weight: 600; }
+        .biz-btn .sub { font-size: 0.7rem; color: #888; margin-top: 2px; }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area textarea {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 0.95rem;
+            resize: none;
+            height: 56px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-area textarea:focus { border-color: #7b2ff7; }
+
+        .input-area textarea::placeholder { color: #666; }
+
+        .send-btn {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #7b2ff7, #00d2ff);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+
+        .send-btn:hover { opacity: 0.85; }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .examples {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .example-chip {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.78rem;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-chip:hover {
+            background: rgba(123, 47, 247, 0.15);
+            border-color: #7b2ff7;
+            color: #ddd;
+        }
+
+        .chat-area {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-customer {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .msg-customer .bubble {
+            background: rgba(123, 47, 247, 0.2);
+            border: 1px solid rgba(123, 47, 247, 0.3);
+            border-radius: 16px 16px 4px 16px;
+            padding: 12px 16px;
+            max-width: 70%;
+        }
+
+        .msg-bot {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .msg-bot .bubble {
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            border-radius: 16px 16px 16px 4px;
+            padding: 12px 16px;
+            max-width: 75%;
+        }
+
+        .bubble .text { font-size: 0.92rem; line-height: 1.5; }
+
+        .bubble .meta {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 0.72rem;
+            color: #888;
+        }
+
+        .intent-tag {
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.7rem;
+        }
+
+        .intent-pricing { background: rgba(0, 200, 83, 0.2); color: #4caf50; }
+        .intent-appointment { background: rgba(33, 150, 243, 0.2); color: #42a5f5; }
+        .intent-complaint { background: rgba(244, 67, 54, 0.2); color: #ef5350; }
+        .intent-greeting { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+        .intent-general_info { background: rgba(156, 39, 176, 0.2); color: #ba68c8; }
+        .intent-spam { background: rgba(158, 158, 158, 0.2); color: #9e9e9e; }
+
+        .typing {
+            display: flex;
+            gap: 4px;
+            padding: 8px 16px;
+        }
+
+        .typing span {
+            width: 8px;
+            height: 8px;
+            background: #7b2ff7;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite;
+        }
+
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat .num {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d2ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat .lbl { font-size: 0.75rem; color: #888; margin-top: 2px; }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .log-table th {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #888;
+            font-weight: 600;
+        }
+
+        .log-table td {
+            padding: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: #bbb;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+
+        .tab {
+            padding: 8px 20px;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #888;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: rgba(123, 47, 247, 0.2);
+            border-color: #7b2ff7;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Smart Auto-Reply Bot</h1>
+            <p>AI-powered customer inquiry responder for small businesses</p>
+            <span class="badge ai" id="modeBadge">Gemini AI</span>
+        </header>
+
+        <div class="card">
+            <h2>Select Business</h2>
+            <div class="business-selector">
+                <div class="biz-btn active" data-biz="salon" onclick="selectBiz(this)">
+                    <span class="icon">💇</span>
+                    <span class="label">Beauty Salon</span>
+                    <span class="sub">Glow Beauty Studio</span>
+                </div>
+                <div class="biz-btn" data-biz="clinic" onclick="selectBiz(this)">
+                    <span class="icon">🦷</span>
+                    <span class="label">Dental Clinic</span>
+                    <span class="sub">CareFirst Dental</span>
+                </div>
+                <div class="biz-btn" data-biz="coaching" onclick="selectBiz(this)">
+                    <span class="icon">📚</span>
+                    <span class="label">Online Coaching</span>
+                    <span class="sub">ElevateIQ Coaching</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Customer Message</h2>
+            <div class="input-area">
+                <textarea id="msgInput" placeholder="Type a customer message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+            </div>
+            <div class="examples" id="examples">
+                <span class="example-chip" onclick="useExample(this)">How much for a haircut?</span>
+                <span class="example-chip" onclick="useExample(this)">I want to book for tomorrow</span>
+                <span class="example-chip" onclick="useExample(this)">Your service was terrible</span>
+                <span class="example-chip" onclick="useExample(this)">Hi, what do you offer?</span>
+                <span class="example-chip" onclick="useExample(this)">Kya rate hai facial ka?</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="tab-bar">
+                <div class="tab active" onclick="switchTab('chat', this)">Chat Preview</div>
+                <div class="tab" onclick="switchTab('log', this)">Reply Log</div>
+            </div>
+
+            <div id="chatTab">
+                <div class="chat-area" id="chatArea">
+                    <div class="empty-state">
+                        <p>Send a customer message to see the auto-reply in action</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="logTab" style="display:none">
+                <div id="logContent">
+                    <div class="empty-state"><p>No replies logged yet</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Session Stats</h2>
+            <div class="stats-bar">
+                <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Total Replies</div></div>
+                <div class="stat"><div class="num" id="statAvgConf">—</div><div class="lbl">Avg Confidence</div></div>
+                <div class="stat"><div class="num" id="statTopIntent">—</div><div class="lbl">Top Intent</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentBiz = "salon";
+        let stats = { total: 0, confidences: [], intents: {} };
+
+        const EXAMPLES = {
+            salon: ["How much for a haircut?", "I want to book for tomorrow", "Your service was terrible", "Hi, what do you offer?", "Kya rate hai facial ka?"],
+            clinic: ["Root canal kitna ka hai?", "I need an appointment ASAP", "The filling came out in 2 days!", "Hello, do you do braces?", "What are your timings?"],
+            coaching: ["IELTS batch kab start hoga?", "I want to join spoken English", "Not happy with the classes", "Hey, tell me about your courses", "Is there a group discount?"]
+        };
+
+        function selectBiz(el) {
+            document.querySelectorAll('.biz-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            currentBiz = el.dataset.biz;
+
+            const exDiv = document.getElementById('examples');
+            exDiv.innerHTML = EXAMPLES[currentBiz].map(e => `<span class="example-chip" onclick="useExample(this)">${e}</span>`).join('');
+        }
+
+        function useExample(el) {
+            document.getElementById('msgInput').value = el.textContent;
+            document.getElementById('msgInput').focus();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const chatArea = document.getElementById('chatArea');
+            const empty = chatArea.querySelector('.empty-state');
+            if (empty) empty.remove();
+
+            chatArea.innerHTML += `<div class="message msg-customer"><div class="bubble"><div class="text">${escHtml(msg)}</div></div></div>`;
+
+            const typingId = 'typing-' + Date.now();
+            chatArea.innerHTML += `<div class="message msg-bot" id="${typingId}"><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            input.value = '';
+            document.getElementById('sendBtn').disabled = true;
+
+            try {
+                const resp = await fetch('/reply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg, business: currentBiz })
+                });
+                const data = await resp.json();
+
+                document.getElementById(typingId).remove();
+
+                chatArea.innerHTML += `
+                    <div class="message msg-bot">
+                        <div class="bubble">
+                            <div class="text">${escHtml(data.reply)}</div>
+                            <div class="meta">
+                                <span class="intent-tag intent-${data.intent}">${data.intent}</span>
+                                <span>Confidence: ${(data.confidence * 100).toFixed(0)}%</span>
+                                <span>${data.business}</span>
+                            </div>
+                        </div>
+                    </div>`;
+
+                updateStats(data);
+            } catch (e) {
+                document.getElementById(typingId).remove();
+                chatArea.innerHTML += `<div class="message msg-bot"><div class="bubble"><div class="text" style="color:#ef5350">Error: could not get reply</div></div></div>`;
+            }
+
+            document.getElementById('sendBtn').disabled = false;
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function updateStats(data) {
+            stats.total++;
+            stats.confidences.push(data.confidence);
+            stats.intents[data.intent] = (stats.intents[data.intent] || 0) + 1;
+
+            document.getElementById('statTotal').textContent = stats.total;
+            const avg = stats.confidences.reduce((a, b) => a + b, 0) / stats.confidences.length;
+            document.getElementById('statAvgConf').textContent = (avg * 100).toFixed(0) + '%';
+
+            const topIntent = Object.entries(stats.intents).sort((a, b) => b[1] - a[1])[0][0];
+            document.getElementById('statTopIntent').textContent = topIntent;
+        }
+
+        function switchTab(tab, el) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+
+            document.getElementById('chatTab').style.display = tab === 'chat' ? 'block' : 'none';
+            document.getElementById('logTab').style.display = tab === 'log' ? 'block' : 'none';
+
+            if (tab === 'log') loadLog();
+        }
+
+        async function loadLog() {
+            try {
+                const resp = await fetch('/log');
+                const rows = await resp.json();
+                if (rows.length === 0) {
+                    document.getElementById('logContent').innerHTML = '<div class="empty-state"><p>No replies logged yet</p></div>';
+                    return;
+                }
+                let html = '<table class="log-table"><tr><th>Time</th><th>Business</th><th>Customer</th><th>Intent</th><th>Reply</th><th>Conf</th></tr>';
+                rows.reverse().forEach(r => {
+                    html += `<tr>
+                        <td>${r.timestamp || ''}</td>
+                        <td>${r.business || ''}</td>
+                        <td title="${escHtml(r.customer_message || '')}">${escHtml(r.customer_message || '')}</td>
+                        <td><span class="intent-tag intent-${r.intent}">${r.intent || ''}</span></td>
+                        <td title="${escHtml(r.auto_reply || '')}">${escHtml(r.auto_reply || '')}</td>
+                        <td>${r.confidence || ''}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                document.getElementById('logContent').innerHTML = html;
+            } catch (e) {
+                document.getElementById('logContent').innerHTML = '<div class="empty-state"><p>Could not load log</p></div>';
+            }
+        }
+
+        function escHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+    </script>
+</body>
+</html>
