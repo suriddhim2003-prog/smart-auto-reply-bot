@@ -97,7 +97,7 @@ Return ONLY the JSON, nothing else."""
 
 def fallback_reply(message: str, biz: dict) -> dict:
     msg = message.lower()
-    if any(w in msg for w in ["price", "cost", "rate", "kitna", "charge", "fee", "paisa"]):
+    if any(w in msg for w in ["price", "cost", "rate", "kitna", "charge", "fee", "paisa", "how much", "kya rate", "amount", "rupee", "rs", "₹", "package"]):
         return {
             "intent": "pricing",
             "reply": f"Here are our prices: {biz['services']}. Would you like to book an appointment?",
